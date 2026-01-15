@@ -1,67 +1,129 @@
 <header class="header">
     <div class="container header-content">
-        <div class="logo">
-            <span class="logo-icon">🐾</span> Veterinaria <strong>Camila</strong>
-        </div>
+        <a href="/" class="logo">
+            <span class="logo-icon">🐾</span> 
+            <span class="logo-text">Veterinaria <strong>Camila</strong></span>
+        </a>
+
         <nav class="nav">
-            <a href="#servicios">Servicios</a>
-            <a href="#nosotros">Nosotros</a>
+            <a href="#servicios" class="nav-link">Servicios</a>
+            <a href="#nosotros" class="nav-link">Nosotros</a>
+            
             <a href="#turnos" class="btn btn-primary">Pedir Turno</a>
         </nav>
     </div>
 </header>
 
 <style>
+    /* --- ESTILOS GENERALES --- */
     .header {
         background-color: var(--color-white);
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         position: sticky;
         top: 0;
         z-index: 100;
-        padding: 1rem 0;
+        padding: 0.8rem 0;
     }
 
     .header-content {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding-left: 20px;
+        padding-right: 20px;
     }
 
+    /* --- LOGO (Estilo anterior recuperado) --- */
     .logo {
-        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
         color: var(--color-primary);
+        font-size: 1.5rem; /* Tamaño base escritorio */
+        white-space: nowrap; /* Evita que el logo se parta en dos líneas */
+    }
+
+    .logo-icon {
+        font-size: 1.8rem; /* La huella un poco más grande */
     }
     
-    .logo-icon {
-        font-size: 1.8rem;
+    .logo-text {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 400;
     }
 
+    .logo strong {
+        font-weight: 700;
+    }
+
+    /* --- NAVEGACIÓN --- */
     .nav {
         display: flex;
         gap: 20px;
         align-items: center;
     }
 
-    .nav a {
+    .nav-link {
         text-decoration: none;
         color: var(--color-text);
         font-weight: 500;
+        transition: color 0.3s;
     }
 
-    .nav a:hover {
+    .nav-link:hover {
         color: var(--color-primary);
     }
-    .nav a.btn-primary{
-        color: var(--color-white);
+
+    /* --- BOTÓN --- */
+    .btn-primary {
+        color: #ffffff !important;
         background-color: var(--color-primary);
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
+        padding: 0.6rem 1.2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 4px 10px rgba(124, 45, 150, 0.2);
+        transition: all 0.3s;
+        white-space: nowrap; /* IMPORTANTE: Para que no se rompa el texto del botón */
     }
 
-    /* Responsivo simple */
+    .btn-primary:hover {
+        background-color: var(--color-primary-dark);
+        transform: translateY(-2px);
+    }
+
+    /* --- VERSIÓN MÓVIL (Correcciones para que no se vea feo) --- */
     @media (max-width: 768px) {
-        .nav a:not(.btn) {
-            display: none; /* Ocultamos enlaces en movil, dejamos solo el boton */
+        .header {
+            padding: 0.6rem 0;
+        }
+
+        /* 1. Ocultamos los enlaces de texto */
+        .nav-link {
+            display: none;
+        }
+
+        /* 2. Achicamos el Logo proporcionalmente */
+        .logo {
+            font-size: 1.1rem; /* Texto más chico en celular */
+            gap: 5px;
+        }
+
+        .logo-icon {
+            font-size: 1.4rem; /* Huella más chica */
+        }
+
+        /* 3. Achicamos el Botón ligeramente */
+        .btn-primary {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        /* Ajuste de márgenes laterales */
+        .header-content {
+            padding-left: 15px;
+            padding-right: 15px;
         }
     }
 </style>
