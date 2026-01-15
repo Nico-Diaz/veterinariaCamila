@@ -1,0 +1,205 @@
+---
+// src/components/Hero.astro
+
+// Puedes cambiar estas URLs por tus fotos reales luego
+const images = [
+  "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=1000&auto=format&fit=crop", // Perros
+  "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1000&auto=format&fit=crop", // Gato
+  "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=1000&auto=format&fit=crop"  // Perro feliz
+];
+---
+
+<section class="hero">
+    <div class="container hero-grid">
+        <div class="hero-text">
+            <h1>Cuidamos a tu mascota con amor y profesionalismo</h1>
+            <p>Clínica general, cirugías, peluquería y todo lo que necesitas en un solo lugar.</p>
+            
+            <div class="hero-buttons">
+                <a href="#turnos" class="btn btn-white">Reservar Turno Online</a>
+                <a href="https://wa.me/5492616937869" target="_blank" class="link-wa">Consultar por WhatsApp</a>
+            </div>
+        </div>
+        
+        <div class="hero-carousel">
+            <div class="carousel-track" id="track">
+                {images.map((img) => (
+                    <div class="carousel-item">
+                        <img src={img} alt="Mascota en Veterinaria Camila" loading="lazy" />
+                    </div>
+                ))}
+            </div>
+            
+            <div class="carousel-overlay"></div>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* --- ESTRUCTURA GENERAL --- */
+    .hero {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--color-white);
+        padding: 4rem 0;
+        border-bottom-left-radius: 50px;
+        border-bottom-right-radius: 50px;
+        overflow: hidden; /* Evita desbordes */
+    }
+
+    .hero-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Dos columnas en PC */
+        gap: 40px;
+        align-items: center;
+    }
+
+    /* --- TIPOGRAFÍA --- */
+    h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+        font-weight: 700;
+    }
+
+    p {
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+        opacity: 0.9;
+        max-width: 90%;
+    }
+
+    /* --- BOTONES (Aquí está la lógica de posición) --- */
+    .hero-buttons {
+        display: flex;
+        align-items: center; /* Alineados verticalmente al centro */
+        gap: 20px;           /* Espacio entre botones */
+        margin-top: 1rem;
+    }
+
+    .btn-white {
+        background-color: var(--color-white);
+        color: var(--color-primary);
+        padding: 12px 30px;
+        text-align: center;
+        white-space: nowrap; /* Evita que el texto se rompa */
+    }
+    
+    .btn-white:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-2px);
+    }
+
+    .link-wa {
+        color: white;
+        text-decoration: underline;
+        font-weight: 500;
+        transition: opacity 0.3s;
+    }
+    
+    .link-wa:hover {
+        opacity: 0.8;
+    }
+
+    /* --- CARRUSEL --- */
+    .hero-carousel {
+        position: relative;
+        width: 100%;
+        max-width: 500px; /* Límite de ancho en PC */
+        height: 350px;    /* Altura fija */
+        border-radius: 20px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        margin: 0 auto; /* Centrado si sobra espacio */
+    }
+
+    .carousel-track {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        overflow-x: scroll;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none; /* Firefox */
+    }
+    
+    .carousel-track::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
+    .carousel-item {
+        min-width: 100%; /* Ocupa todo el ancho del contenedor */
+        height: 100%;
+        scroll-snap-align: center;
+    }
+
+    .carousel-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Recorta la imagen para llenar el hueco sin deformar */
+    }
+
+    /* --- RESPONSIVE (MÓVIL) --- */
+    @media (max-width: 768px) {
+        .hero {
+            padding: 3rem 0;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+        }
+
+        .hero-grid {
+            grid-template-columns: 1fr; /* Una sola columna */
+            text-align: center;         /* Todo centrado */
+            gap: 30px;
+        }
+
+        h1 {
+            font-size: 2rem; /* Título un poco más chico */
+        }
+
+        p {
+            margin: 0 auto 2rem auto; /* Centrar el párrafo */
+        }
+
+        /* AJUSTE DE BOTONES EN COLUMNA */
+        .hero-buttons {
+            flex-direction: column; /* Uno abajo del otro */
+            width: 100%;
+            gap: 15px;
+        }
+
+        .btn-white {
+            width: 100%;      /* Botón ancho completo */
+            max-width: 350px; /* Pero no gigante */
+            margin: 0 auto;
+        }
+
+        .link-wa {
+            display: block;
+            padding: 10px;    /* Un poco más fácil de tocar con el dedo */
+        }
+
+        /* AJUSTE DE CARRUSEL EN MÓVIL */
+        .hero-carousel {
+            height: 250px;   /* Menos alto en celular */
+            max-width: 100%; /* Ocupa el ancho disponible */
+        }
+    }
+</style>
+
+<script>
+    // Lógica simple para mover el carrusel automáticamente
+    const track = document.getElementById('track');
+    
+    if (track) {
+        setInterval(() => {
+            // Si llega al final (con un margen de error pequeño), vuelve al principio
+            if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
+                track.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                // Si no, avanza una "foto"
+                track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+            }
+        }, 3500); // Cada 3.5 segundos
+    }
+</script>

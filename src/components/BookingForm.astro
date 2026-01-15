@@ -1,0 +1,163 @@
+<section id="turnos" class="booking-section">
+    <div class="container">
+        <div class="booking-card">
+            <div class="booking-header">
+                <h2>📅 Agendar Cita</h2>
+                <p>Completa el formulario y te esperamos.</p>
+            </div>
+
+            <form class="booking-form">
+                <div class="form-group">
+                    <label>Nombre del Dueño</label>
+                    <input type="text" placeholder="Tu nombre" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre de la Mascota</label>
+                    <input type="text" placeholder="Ej: Firulais" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Servicio</label>
+                    <select>
+                        <option>Clínica General</option>
+                        <option>Vacunación</option>
+                        <option>Peluquería</option>
+                        <option>Cirugía (Consulta previa)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <div class="date-wrapper">
+                        <input type="date" required class="custom-date">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Horario</label>
+                    <input type="time" required class="custom-time">
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="btn btn-primary btn-block">Confirmar Turno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* ... Estilos anteriores del contenedor ... */
+    .booking-section { padding: 4rem 0; background-color: var(--color-bg-light); }
+    .booking-card {
+        background: var(--color-white);
+        max-width: 600px;
+        margin: 0 auto;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(124, 45, 150, 0.15);
+        border: 1px solid rgba(124, 45, 150, 0.1);
+    }
+    .booking-header { text-align: center; margin-bottom: 2rem; }
+    .booking-header h2 { color: var(--color-primary); font-size: 2rem; }
+    .booking-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .full-width { grid-column: span 2; }
+    .form-group { display: flex; flex-direction: column; }
+    label { font-size: 0.9rem; font-weight: 600; margin-bottom: 5px; color: #555; }
+
+    /* ESTILOS GENERALES DE INPUTS */
+    input:not([type="submit"]), select {
+        padding: 12px 15px;
+        border: 2px solid #eee; /* Borde suave */
+        border-radius: 10px;    /* Bordes más redondeados */
+        font-family: inherit;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background-color: #fcfcfc;
+        color: #333;
+        width: 100%;
+    }
+
+    input:focus, select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(124, 45, 150, 0.1); /* Resplandor morado suave */
+    }
+
+    /* --- PERSONALIZACIÓN DEL CALENDARIO (DATE) --- */
+    
+    /* Wrapper para dar un toque extra si es necesario */
+    .date-wrapper {
+        position: relative;
+    }
+
+    input[type="date"] {
+        appearance: none; /* Elimina estilos base del navegador */
+        -webkit-appearance: none;
+        position: relative;
+    }
+
+    /* Cambiamos el icono del calendario (El piquito o icono a la derecha) */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background-color: transparent;
+        padding: 5px;
+        cursor: pointer;
+        border-radius: 3px;
+        
+        /* FILTRO MÁGICO: Esto convierte el icono negro por defecto al MORADO de tu marca */
+        filter: invert(24%) sepia(43%) saturate(4336%) hue-rotate(274deg) brightness(87%) contrast(96%);
+        
+        /* Hacemos el icono un poco más grande */
+        transform: scale(1.2); 
+    }
+
+    /* Opcional: Estilo al hacer hover sobre el icono */
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        background-color: rgba(124, 45, 150, 0.1);
+    }
+
+    /* Lo mismo para el input de hora */
+    input[type="time"]::-webkit-calendar-picker-indicator {
+        filter: invert(24%) sepia(43%) saturate(4336%) hue-rotate(274deg) brightness(87%) contrast(96%);
+        cursor: pointer;
+        transform: scale(1.2);
+    }
+
+    /* --- BOTÓN PEDIR TURNO --- */
+    .btn {
+        display: inline-block;
+        padding: 10px 25px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background-color: var(--color-primary);
+        
+        /* AQUÍ FORZAMOS EL BLANCO */
+        color: #ffffff !important; 
+        
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px rgba(124, 45, 150, 0.3); /* Sombra con color */
+    }
+
+    .btn-primary:hover {
+        background-color: var(--color-primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(124, 45, 150, 0.4);
+    }
+
+    /* Ajustes responsive */
+    @media (max-width: 600px) {
+        .booking-form { grid-template-columns: 1fr; }
+        .full-width { grid-column: span 1; }
+    }
+</style>
