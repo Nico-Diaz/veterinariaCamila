@@ -1,0 +1,345 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Panel Admin | Veterinaria Camila">
+    <div class="app-wrapper">
+        
+        <div id="login-screen" class="login-overlay">
+            <div class="glass-card">
+                <div class="icon-lock">🔐</div>
+                <h2>Admin Acceso</h2>
+                <input type="password" id="admin-pass" placeholder="Clave..." />
+                <button id="btn-login">Entrar</button>
+                <p id="login-error">Clave incorrecta</p>
+            </div>
+        </div>
+
+        <div id="admin-screen" style="display: none;">
+            
+            <nav class="navbar">
+                <div class="brand"><span>🐾</span> Vet. <strong>Camila</strong></div>
+                <button id="btn-logout" class="btn-logout">Salir</button>
+            </nav>
+
+            <main class="container">
+                
+                <div class="header-row">
+                    <div class="titles">
+                        <h1>Turnos</h1>
+                        <p id="last-update">Actualizado: Recién</p>
+                    </div>
+                    <button id="btn-refresh" class="btn-refresh">🔄</button>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <span class="label">Total</span>
+                        <strong id="stat-total">0</strong>
+                    </div>
+                    <div class="stat-card highlight">
+                        <span class="label">Pendientes</span>
+                        <strong id="stat-pending">0</strong>
+                    </div>
+                </div>
+
+                <div class="list-container">
+                    <table class="responsive-table">
+                        <thead class="table-head">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Paciente</th>
+                                <th>Dueño & Contacto</th>
+                                <th>Estado</th>
+                                <th class="text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-turnos">
+                            </tbody>
+                    </table>
+
+                    <div id="empty-state" class="empty-state" style="display: none;">
+                        <div class="empty-icon">🍃</div>
+                        <h3>Sin turnos</h3>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    import { supabase } from '../../lib/supabase';
+
+    // --- LOGICA LOGIN ---
+    const loginScreen = document.getElementById('login-screen');
+    const adminScreen = document.getElementById('admin-screen');
+    const btnLogin = document.getElementById('btn-login');
+    const inputPass = document.getElementById('admin-pass') as HTMLInputElement;
+    const errorMsg = document.getElementById('login-error');
+    const CLAVE = "admin123"; 
+
+    if (localStorage.getItem('admin_session') === 'active') initDashboard();
+
+    btnLogin?.addEventListener('click', () => {
+        if (inputPass.value === CLAVE) {
+            localStorage.setItem('admin_session', 'active');
+            initDashboard();
+        } else {
+            errorMsg!.style.display = 'block';
+        }
+    });
+
+    document.getElementById('btn-logout')?.addEventListener('click', () => {
+        if(confirm('¿Salir?')) {
+            localStorage.removeItem('admin_session');
+            location.reload();
+        }
+    });
+
+    function initDashboard() {
+        loginScreen!.style.display = 'none';
+        adminScreen!.style.display = 'block';
+        loadData();
+    }
+
+    // --- CARGA DE DATOS ---
+    const btnRefresh = document.getElementById('btn-refresh');
+    btnRefresh?.addEventListener('click', () => {
+        btnRefresh.classList.add('spin');
+        loadData().then(() => setTimeout(() => btnRefresh.classList.remove('spin'), 500));
+    });
+
+    async function loadData() {
+        const tbody = document.getElementById('tbody-turnos');
+        const emptyState = document.getElementById('empty-state');
+        const lastUpdate = document.getElementById('last-update');
+        
+        tbody!.innerHTML = ''; 
+
+        const { data: turnos, error } = await supabase
+            .from('turnos')
+            .select('*')
+            .order('id', { ascending: false });
+
+        if (error) { alert('Error conexión'); return; }
+
+        const now = new Date();
+        lastUpdate!.innerText = `Actualizado: ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        const total = turnos?.length || 0;
+        const pendientes = turnos?.filter(t => t.estado === 'Pendiente').length || 0;
+        document.getElementById('stat-total')!.innerText = total.toString();
+        document.getElementById('stat-pending')!.innerText = pendientes.toString();
+
+        if (!turnos || turnos.length === 0) {
+            tbody!.style.display = 'none';
+            emptyState!.style.display = 'flex';
+            return;
+        }
+        
+        tbody!.style.display = ''; 
+        emptyState!.style.display = 'none';
+
+        turnos.forEach(t => {
+            const tr = document.createElement('tr');
+            tr.className = "data-row";
+            
+            const cleanPhone = t.telefono.replace(/[^0-9]/g, '');
+            const waLink = `https://wa.me/${cleanPhone}`;
+            const initial = t.mascota.charAt(0).toUpperCase();
+            
+            const dateObj = new Date(t.fecha + 'T00:00:00');
+            const day = dateObj.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+
+            // HTML ESTRUCTURADO PARA AMBOS DISPOSITIVOS
+            tr.innerHTML = `
+                <td class="col-date">
+                    <div class="date-content">
+                        <span class="d-day">${day}</span>
+                        <span class="d-time">${t.hora}</span>
+                    </div>
+                    <span class="pill mobile-pill ${t.estado.toLowerCase()}">${t.estado}</span>
+                </td>
+                
+                <td class="col-patient">
+                    <div class="patient-wrap">
+                        <div class="avatar">${initial}</div>
+                        <div class="p-info">
+                            <span class="p-name">${t.mascota}</span>
+                            <span class="p-srv">${t.servicio || 'Castración'}</span>
+                        </div>
+                    </div>
+                </td>
+
+                <td class="col-owner">
+                    <div class="owner-wrap">
+                        <div class="owner-text">
+                            <span class="mobile-label">Dueño:</span>
+                            <span class="o-name">${t.nombre}</span>
+                        </div>
+                        <a href="${waLink}" target="_blank" class="wa-btn">
+                            WhatsApp
+                        </a>
+                    </div>
+                </td>
+
+                <td class="col-status desktop-pill">
+                    <span class="pill ${t.estado.toLowerCase()}">${t.estado}</span>
+                </td>
+
+                <td class="col-actions">
+                    <button class="btn-delete delete" data-id="${t.id}">
+                        🗑️ <span class="mobile-text">Eliminar</span>
+                    </button>
+                </td>
+            `;
+            tbody?.appendChild(tr);
+        });
+
+        document.querySelectorAll('.delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                if(confirm('¿Borrar turno?')) {
+                    const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+                    await supabase.from('turnos').delete().eq('id', id);
+                    loadData();
+                }
+            });
+        });
+    }
+</script>
+
+<style is:global>
+    /* === BASE GENERAL === */
+    :root { --primary: #7C2D96; --bg: #F3F4F6; --green: #25D366; }
+    body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; color: #333; padding-bottom: 50px; }
+    
+    /* Login & Navbar (Iguales para ambos) */
+    .login-overlay { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 100; }
+    .glass-card { background: white; padding: 30px; border-radius: 15px; text-align: center; width: 90%; max-width: 320px; }
+    .glass-card input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+    .glass-card button { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; }
+    #login-error { color: red; display: none; margin-top: 10px; }
+
+    .navbar { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 50; }
+    .brand { font-weight: 700; font-size: 1.1rem; }
+    .brand strong { color: var(--primary); }
+    .btn-logout { border: 1px solid #ddd; background: white; padding: 5px 12px; border-radius: 6px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .btn-refresh { background: white; border: none; font-size: 1.5rem; cursor: pointer; transition: transform 0.5s; }
+    .spin { transform: rotate(360deg); }
+
+    /* STATS */
+    .stats-container { display: flex; gap: 10px; margin-bottom: 20px; }
+    .stat-card { flex: 1; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .stat-card.highlight { border-bottom: 4px solid var(--primary); }
+    .stat-card strong { font-size: 1.5rem; display: block; }
+
+    /* ========================================================== */
+    /* === ESTILOS RESPONSIVOS AVANZADOS (AQUÍ ESTÁ LA CLAVE) === */
+    /* ========================================================== */
+    
+    .responsive-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .pill { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+    .pendiente { background: #FFF3CD; color: #856404; }
+    .confirmado { background: #D1FAE5; color: #065F46; }
+
+    /* --------- 1. MÓVIL (PANTALLAS CHICAS < 768px) --------- */
+    @media (max-width: 768px) {
+        .table-head { display: none; } /* Ocultar encabezados de tabla */
+        .desktop-pill { display: none; } /* Ocultar columna estado normal */
+        
+        .list-container { background: transparent; }
+        
+        /* La fila se comporta como TARJETA */
+        .responsive-table, tbody, tr, td { display: block; width: 100%; box-sizing: border-box; }
+        
+        tr.data-row {
+            background: white;
+            margin-bottom: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #fff;
+        }
+
+        /* Cabecera de la tarjeta (Fecha y Estado) */
+        .col-date {
+            background: #F8F9FA;
+            padding: 12px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .date-content { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #555; text-transform: uppercase; }
+        .mobile-pill { display: inline-block; }
+
+        /* Cuerpo de la tarjeta */
+        .col-patient { padding: 20px 20px 5px 20px; }
+        .patient-wrap { display: flex; align-items: center; gap: 15px; }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #E0C3FC; color: #4A148C; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; font-weight: 700; }
+        .p-name { font-size: 1.2rem; font-weight: 700; display: block; }
+        .p-srv { color: #888; font-size: 0.9rem; }
+
+        .col-owner { padding: 10px 20px 15px 20px; }
+        .owner-wrap { display: flex; flex-direction: column; gap: 10px; }
+        .owner-text { display: flex; gap: 5px; align-items: baseline; }
+        .mobile-label { font-size: 0.85rem; color: #888; }
+        .o-name { font-weight: 600; font-size: 1rem; }
+        
+        .wa-btn {
+            background: var(--green); color: white; padding: 12px;
+            border-radius: 10px; text-decoration: none; font-weight: 700; text-align: center;
+            display: block; width: 100%; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2);
+        }
+
+        .col-actions { padding: 0 20px 20px 20px; border-top: 1px solid #fafafa; padding-top: 15px; }
+        .btn-delete { 
+            width: 100%; background: white; border: 2px solid #ffecec; color: #ef4444; 
+            padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;
+            display: flex; justify-content: center; gap: 8px;
+        }
+    }
+
+    /* --------- 2. ESCRITORIO (PANTALLAS GRANDES > 769px) --------- */
+    @media (min-width: 769px) {
+        .list-container { background: white; border-radius: 16px; padding: 5px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+        
+        .table-head { display: table-header-group; }
+        .mobile-pill { display: none; } /* Ocultar pill del header móvil */
+        .mobile-label { display: none; }
+        .mobile-text { display: none; }
+
+        /* Restaurar comportamiento de TABLA */
+        .responsive-table { display: table; width: 100%; }
+        tbody { display: table-row-group; }
+        tr.data-row { display: table-row; background: transparent; box-shadow: none; border-radius: 0; }
+        tr.data-row:hover { background-color: #f9fafb; }
+        
+        td { display: table-cell; padding: 15px 20px; vertical-align: middle; border-bottom: 1px solid #f0f0f0; }
+        tr:last-child td { border-bottom: none; }
+        th { text-align: left; padding: 15px 20px; background: #fafafa; color: #888; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #eee; }
+
+        /* Ajustes visuales para PC */
+        .col-date { background: transparent; border: none; }
+        .date-content { flex-direction: column; align-items: flex-start; gap: 0; text-transform: none; }
+        .d-day { font-size: 0.95rem; font-weight: 700; color: #333; }
+        .d-time { font-size: 0.8rem; color: #888; font-weight: 400; }
+
+        .patient-wrap { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 40px; height: 40px; font-size: 0.9rem; }
+        .p-name { font-size: 0.95rem; }
+        
+        .owner-wrap { flex-direction: row; align-items: center; gap: 10px; }
+        .wa-btn { background: #D1FAE5; color: #065F46; padding: 4px 12px; border-radius: 20px; text-decoration: none; font-size: 0.75rem; font-weight: 700; width: auto; }
+        
+        .btn-delete { background: white; border: 1px solid #eee; width: 35px; height: 35px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-delete:hover { background: #fee2e2; border-color: #fca5a5; }
+        .text-right { text-align: right; }
+    }
+
+    .empty-state { padding: 50px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .empty-icon { font-size: 3rem; opacity: 0.5; }
+</style>

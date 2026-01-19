@@ -1,18 +1,274 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Header from '../components/Header.astro';
-import Hero from '../components/Hero.astro';
-import BookingForm from '../components/BookingForm.astro';
 ---
 
-<Layout title="Veterinaria Camila | Turnos">
-	<Header />
-	<main>
-		<Hero />
-        <BookingForm />
-	</main>
-    
-    <footer style="text-align: center; padding: 20px; background: white; margin-top: 2rem;">
-        <p>© 2024 Veterinaria Camila. Mendoza.</p>
-    </footer>
+<Layout title="Turno Castración | Veterinaria Camila">
+    <main class="main-container">
+        
+        <div class="booking-card">
+            
+            <header class="card-header">
+                <div class="logo">
+                    <span class="paw">🐾</span>
+                    <div class="logo-text">
+                        <h1>Veterinaria <strong>Camila</strong></h1>
+                        <p>Turnos para Castración</p>
+                    </div>
+                </div>
+            </header>
+
+            <form id="turnoForm" class="form-grid">
+                
+                <div class="input-group">
+                    <label>Tu Nombre</label>
+                    <input type="text" id="nombre" placeholder="Nombre y Apellido" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Nombre Mascota</label>
+                    <input type="text" id="mascota" placeholder="Ej: Firulais" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Tu Teléfono</label>
+                    <input type="tel" id="telefono_cliente" placeholder="Ej: 261 123 4567" required inputmode="numeric">
+                </div>
+
+                <div class="input-group">
+                    <label>Tu Email</label>
+                    <input type="email" id="email" placeholder="ejemplo@gmail.com" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Fecha Preferida</label>
+                    <input type="date" id="fecha" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Horario Preferido</label>
+                    <div class="select-wrapper">
+                        <select id="hora" required class="time-select">
+                            <option value="" disabled selected>Elegir hora...</option>
+                            <optgroup label="Mañana">
+                                <option value="09:00 hs">09:00 hs</option>
+                                <option value="09:30 hs">09:30 hs</option>
+                                <option value="10:00 hs">10:00 hs</option>
+                                <option value="10:30 hs">10:30 hs</option>
+                                <option value="11:00 hs">11:00 hs</option>
+                                <option value="11:30 hs">11:30 hs</option>
+                                <option value="12:00 hs">12:00 hs</option>
+                            </optgroup>
+                            <optgroup label="Tarde">
+                                <option value="16:00 hs">16:00 hs</option>
+                                <option value="16:30 hs">16:30 hs</option>
+                                <option value="17:00 hs">17:00 hs</option>
+                                <option value="17:30 hs">17:30 hs</option>
+                                <option value="18:00 hs">18:00 hs</option>
+                                <option value="18:30 hs">18:30 hs</option>
+                                <option value="19:00 hs">19:00 hs</option>
+                            </optgroup>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                    </div>
+                </div>
+
+                <div class="action-area">
+                    <button type="submit" class="btn-primary">
+                        Continuar y Revisar ➝
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </main>
 </Layout>
+
+<script>
+    // 1. BLOQUEAR FECHAS PASADAS
+    const dateInput = document.getElementById('fecha') as HTMLInputElement;
+    if (dateInput) {
+        // Obtener fecha de hoy en formato YYYY-MM-DD
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+    }
+
+    // 2. ENVÍO DE FORMULARIO
+    const form = document.getElementById('turnoForm');
+    
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const nombre = (document.getElementById('nombre') as HTMLInputElement).value;
+            const mascota = (document.getElementById('mascota') as HTMLInputElement).value;
+            const telefono_cliente = (document.getElementById('telefono_cliente') as HTMLInputElement).value;
+            const email = (document.getElementById('email') as HTMLInputElement).value;
+            const fecha = (document.getElementById('fecha') as HTMLInputElement).value;
+            const hora = (document.getElementById('hora') as HTMLSelectElement).value;
+            const servicio = "Castración";
+
+            const params = new URLSearchParams({
+                nombre, mascota, telefono_cliente, email, servicio, fecha, hora
+            });
+
+            window.location.href = `/confirmacion?${params.toString()}`;
+        });
+    }
+</script>
+
+<style>
+    /* --- ESTRUCTURA GENERAL --- */
+    .main-container { 
+        width: 100%; 
+        max-width: 500px;
+        padding: 20px; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 20px; 
+    }
+    
+    .booking-card { 
+        position: relative;
+        background-color: #ffffff;
+        padding: 2.5rem; 
+        border-radius: 24px; 
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); 
+        border: 1px solid #f0f0f0; 
+    }
+    
+    .card-header { 
+        text-align: center; 
+        margin-bottom: 2rem; 
+        padding-bottom: 1rem; 
+        border-bottom: 2px solid #f8f8f8;
+    }
+    
+    .logo { display: inline-flex; flex-direction: column; align-items: center; color: var(--primary); }
+    .paw { font-size: 3rem; margin-bottom: 5px; animation: bounce 2s infinite; }
+    
+    /* CAMBIO: El título principal ahora es Morado */
+    .logo-text h1 { 
+        font-size: 1.5rem; 
+        font-weight: 400; 
+        line-height: 1.2; 
+        color: var(--primary); /* Título en Morado */
+    }
+    .logo-text strong { font-weight: 700; color: var(--primary); }
+    .logo-text p { font-size: 0.9rem; color: #888; margin-top: 5px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+    
+    .form-grid { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        gap: 20px; 
+    }
+    
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    
+    /* CAMBIO: Las etiquetas (labels) ahora son Moradas */
+    label { 
+        font-size: 0.75rem; 
+        font-weight: 700; 
+        color: var(--primary); /* Aquí aplicamos el morado */
+        margin-left: 4px; 
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    input, select {
+        background-color: #FAFAFA;
+        border: 2px solid #EEE;
+        padding: 14px;
+        border-radius: 12px;
+        font-size: 1rem;
+        color: #333;
+        transition: all 0.3s ease;
+    }
+    
+    input:focus, select:focus {
+        background-color: #fff;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(124, 45, 150, 0.1);
+        outline: none;
+    }
+
+    .select-wrapper { position: relative; }
+    .time-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+    .select-arrow {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary);
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .action-area { 
+        grid-column: span 2; 
+        margin-top: 15px; 
+    }
+
+    .btn-primary {
+        width: 100%;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 18px;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s, background-color 0.2s;
+        box-shadow: 0 10px 20px rgba(124, 45, 150, 0.2);
+    }
+    .btn-primary:hover { 
+        background-color: var(--primary-dark); 
+        transform: translateY(-2px); 
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+
+    @media (max-width: 600px) {
+        .main-container {
+            padding: 0;
+            max-width: 100%;
+            min-height: 100dvh;
+        }
+
+        .booking-card {
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+            padding: 20px 25px 40px 25px;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+        }
+
+        .card-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        .action-area {
+            grid-column: span 1;
+            margin-top: auto;
+            padding-top: 20px;
+        }
+
+        input, select {
+            font-size: 16px;
+            padding: 16px;
+        }
+    }
+</style>
