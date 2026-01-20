@@ -2,16 +2,22 @@
 import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout title="Panel Admin | Veterinaria Camila">
+<Layout title="Admin Seguro | Veterinaria Camila">
     <div class="app-wrapper">
         
         <div id="login-screen" class="login-overlay">
-            <div class="glass-card">
-                <div class="icon-lock">🔐</div>
-                <h2>Admin Acceso</h2>
-                <input type="password" id="admin-pass" placeholder="Clave..." />
-                <button id="btn-login">Entrar</button>
-                <p id="login-error">Clave incorrecta</p>
+            <div class="login-card">
+                <div class="login-icon">🔐</div>
+                <h2>Acceso Seguro</h2>
+                <p>Solo personal autorizado</p>
+                
+                <form id="login-form">
+                    <input type="email" id="email" placeholder="admin@veterinaria.com" required />
+                    <input type="password" id="password" placeholder="Contraseña..." required />
+                    <button type="submit" id="btn-login">Iniciar Sesión</button>
+                </form>
+
+                <p id="login-error" class="error-msg">Credenciales incorrectas</p>
             </div>
         </div>
 
@@ -19,15 +25,14 @@ import Layout from '../../layouts/Layout.astro';
             
             <nav class="navbar">
                 <div class="brand"><span>🐾</span> Vet. <strong>Camila</strong></div>
-                <button id="btn-logout" class="btn-logout">Salir</button>
+                <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
             </nav>
 
             <main class="container">
-                
                 <div class="header-row">
                     <div class="titles">
-                        <h1>Turnos</h1>
-                        <p id="last-update">Actualizado: Recién</p>
+                        <h1>Panel de Control</h1>
+                        <p id="user-display">Usuario: ...</p>
                     </div>
                     <button id="btn-refresh" class="btn-refresh">🔄</button>
                 </div>
@@ -35,11 +40,11 @@ import Layout from '../../layouts/Layout.astro';
                 <div class="stats-container">
                     <div class="stat-card">
                         <span class="label">Total</span>
-                        <strong id="stat-total">0</strong>
+                        <strong id="stat-total">-</strong>
                     </div>
                     <div class="stat-card highlight">
                         <span class="label">Pendientes</span>
-                        <strong id="stat-pending">0</strong>
+                        <strong id="stat-pending">-</strong>
                     </div>
                 </div>
 
@@ -49,7 +54,7 @@ import Layout from '../../layouts/Layout.astro';
                             <tr>
                                 <th>Fecha</th>
                                 <th>Paciente</th>
-                                <th>Dueño & Contacto</th>
+                                <th>Contacto</th>
                                 <th>Estado</th>
                                 <th class="text-right">Acción</th>
                             </tr>
@@ -57,13 +62,13 @@ import Layout from '../../layouts/Layout.astro';
                         <tbody id="tbody-turnos">
                             </tbody>
                     </table>
-
+                    
                     <div id="empty-state" class="empty-state" style="display: none;">
-                        <div class="empty-icon">🍃</div>
-                        <h3>Sin turnos</h3>
+                        <div class="empty-icon">🔒</div>
+                        <h3>Sin acceso o sin datos</h3>
+                        <p>Inicia sesión para ver los turnos.</p>
                     </div>
                 </div>
-
             </main>
         </div>
     </div>
@@ -72,75 +77,127 @@ import Layout from '../../layouts/Layout.astro';
 <script>
     import { supabase } from '../../lib/supabase';
 
-    // --- LOGICA LOGIN ---
-    const loginScreen = document.getElementById('login-screen');
-    const adminScreen = document.getElementById('admin-screen');
-    const btnLogin = document.getElementById('btn-login');
-    const inputPass = document.getElementById('admin-pass') as HTMLInputElement;
-    const errorMsg = document.getElementById('login-error');
-    const CLAVE = "admin123"; 
+    // 1. REFERENCIAS AL DOM (Agregamos '!' y 'as ...' para calmar a TypeScript)
+    const loginScreen = document.getElementById('login-screen')!;
+    const adminScreen = document.getElementById('admin-screen')!;
+    const loginForm = document.getElementById('login-form') as HTMLFormElement; // 'as' define el tipo
+    const errorMsg = document.getElementById('login-error')!;
+    const btnLogout = document.getElementById('btn-logout')!;
+    const btnRefresh = document.getElementById('btn-refresh'); // Este puede ser null si no cargó aún
+    
+    // --- CHEQUEO DE SESIÓN ---
+    checkSession();
 
-    if (localStorage.getItem('admin_session') === 'active') initDashboard();
-
-    btnLogin?.addEventListener('click', () => {
-        if (inputPass.value === CLAVE) {
-            localStorage.setItem('admin_session', 'active');
-            initDashboard();
+    async function checkSession() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            showDashboard(session.user.email);
         } else {
-            errorMsg!.style.display = 'block';
+            // Como usamos '!', ya no marca error aquí
+            loginScreen.style.display = 'flex';
         }
-    });
+    }
 
-    document.getElementById('btn-logout')?.addEventListener('click', () => {
-        if(confirm('¿Salir?')) {
-            localStorage.removeItem('admin_session');
-            location.reload();
-        }
-    });
+    // --- LOGICA DE LOGIN ---
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Casting seguro para inputs
+            const emailInput = document.getElementById('email') as HTMLInputElement;
+            const passInput = document.getElementById('password') as HTMLInputElement;
+            const btnLogin = document.getElementById('btn-login') as HTMLButtonElement;
 
-    function initDashboard() {
-        loginScreen!.style.display = 'none';
-        adminScreen!.style.display = 'block';
+            const email = emailInput.value;
+            const password = passInput.value;
+
+            btnLogin.innerText = "Verificando...";
+            errorMsg.style.display = 'none';
+
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                btnLogin.innerText = "Iniciar Sesión";
+                errorMsg.innerText = "Error: " + error.message;
+                errorMsg.style.display = 'block';
+            } else {
+                showDashboard(data.user.email);
+            }
+        });
+    }
+
+    // --- LOGICA DE LOGOUT ---
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+        });
+    }
+
+    // --- MOSTRAR PANEL ---
+    function showDashboard(email: string | undefined) {
+        if(loginScreen) loginScreen.style.display = 'none';
+        if(adminScreen) adminScreen.style.display = 'block';
+        
+        const userDisplay = document.getElementById('user-display');
+        if(userDisplay && email) userDisplay.innerText = `Admin: ${email}`;
+        
         loadData();
     }
 
-    // --- CARGA DE DATOS ---
-    const btnRefresh = document.getElementById('btn-refresh');
-    btnRefresh?.addEventListener('click', () => {
-        btnRefresh.classList.add('spin');
-        loadData().then(() => setTimeout(() => btnRefresh.classList.remove('spin'), 500));
-    });
+    // --- CARGAR DATOS ---
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', () => {
+            btnRefresh.classList.add('spin');
+            loadData().then(() => setTimeout(() => btnRefresh.classList.remove('spin'), 500));
+        });
+    }
 
     async function loadData() {
         const tbody = document.getElementById('tbody-turnos');
         const emptyState = document.getElementById('empty-state');
         const lastUpdate = document.getElementById('last-update');
+        const statTotal = document.getElementById('stat-total');
+        const statPending = document.getElementById('stat-pending');
+
+        // Si no encuentra la tabla, cortamos para evitar errores
+        if (!tbody || !emptyState) return;
         
-        tbody!.innerHTML = ''; 
+        tbody.innerHTML = ''; 
 
         const { data: turnos, error } = await supabase
             .from('turnos')
             .select('*')
             .order('id', { ascending: false });
 
-        if (error) { alert('Error conexión'); return; }
+        if (error) {
+            console.error(error);
+            alert("Sesión expirada o error de red.");
+            return;
+        }
 
+        // Actualizar hora y stats (con chequeo por si acaso)
         const now = new Date();
-        lastUpdate!.innerText = `Actualizado: ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        if(lastUpdate) lastUpdate.innerText = `Actualizado: ${timeString}`;
 
         const total = turnos?.length || 0;
         const pendientes = turnos?.filter(t => t.estado === 'Pendiente').length || 0;
-        document.getElementById('stat-total')!.innerText = total.toString();
-        document.getElementById('stat-pending')!.innerText = pendientes.toString();
+        
+        if(statTotal) statTotal.innerText = total.toString();
+        if(statPending) statPending.innerText = pendientes.toString();
 
         if (!turnos || turnos.length === 0) {
-            tbody!.style.display = 'none';
-            emptyState!.style.display = 'flex';
+            tbody.style.display = 'none';
+            emptyState.style.display = 'flex';
             return;
         }
         
-        tbody!.style.display = ''; 
-        emptyState!.style.display = 'none';
+        tbody.style.display = ''; 
+        emptyState.style.display = 'none';
 
         turnos.forEach(t => {
             const tr = document.createElement('tr');
@@ -149,11 +206,9 @@ import Layout from '../../layouts/Layout.astro';
             const cleanPhone = t.telefono.replace(/[^0-9]/g, '');
             const waLink = `https://wa.me/${cleanPhone}`;
             const initial = t.mascota.charAt(0).toUpperCase();
-            
             const dateObj = new Date(t.fecha + 'T00:00:00');
             const day = dateObj.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
 
-            // HTML ESTRUCTURADO PARA AMBOS DISPOSITIVOS
             tr.innerHTML = `
                 <td class="col-date">
                     <div class="date-content">
@@ -179,9 +234,7 @@ import Layout from '../../layouts/Layout.astro';
                             <span class="mobile-label">Dueño:</span>
                             <span class="o-name">${t.nombre}</span>
                         </div>
-                        <a href="${waLink}" target="_blank" class="wa-btn">
-                            WhatsApp
-                        </a>
+                        <a href="${waLink}" target="_blank" class="wa-btn">WhatsApp</a>
                     </div>
                 </td>
 
@@ -195,7 +248,7 @@ import Layout from '../../layouts/Layout.astro';
                     </button>
                 </td>
             `;
-            tbody?.appendChild(tr);
+            tbody.appendChild(tr);
         });
 
         document.querySelectorAll('.delete').forEach(btn => {
@@ -211,72 +264,54 @@ import Layout from '../../layouts/Layout.astro';
 </script>
 
 <style is:global>
-    /* === BASE GENERAL === */
+    /* === ESTILOS RESPONSIVOS (Manteniendo el diseño bonito anterior) === */
     :root { --primary: #7C2D96; --bg: #F3F4F6; --green: #25D366; }
     body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; color: #333; padding-bottom: 50px; }
     
-    /* Login & Navbar (Iguales para ambos) */
+    /* Login Ajustado */
     .login-overlay { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 100; }
-    .glass-card { background: white; padding: 30px; border-radius: 15px; text-align: center; width: 90%; max-width: 320px; }
-    .glass-card input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-    .glass-card button { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; }
-    #login-error { color: red; display: none; margin-top: 10px; }
+    .login-card { background: white; padding: 40px; border-radius: 15px; text-align: center; width: 90%; max-width: 350px; }
+    .login-card input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+    .login-card button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .error-msg { color: #ef4444; margin-top: 10px; font-size: 0.9rem; display: none; }
 
+    /* Navbar */
     .navbar { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 50; }
     .brand { font-weight: 700; font-size: 1.1rem; }
     .brand strong { color: var(--primary); }
-    .btn-logout { border: 1px solid #ddd; background: white; padding: 5px 12px; border-radius: 6px; }
+    .btn-logout { border: 1px solid #ddd; background: white; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
 
     .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .btn-refresh { background: white; border: none; font-size: 1.5rem; cursor: pointer; transition: transform 0.5s; }
     .spin { transform: rotate(360deg); }
 
-    /* STATS */
     .stats-container { display: flex; gap: 10px; margin-bottom: 20px; }
     .stat-card { flex: 1; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .stat-card.highlight { border-bottom: 4px solid var(--primary); }
     .stat-card strong { font-size: 1.5rem; display: block; }
 
-    /* ========================================================== */
-    /* === ESTILOS RESPONSIVOS AVANZADOS (AQUÍ ESTÁ LA CLAVE) === */
-    /* ========================================================== */
-    
+    /* === RESPONSIVE TABLE === */
     .responsive-table { width: 100%; border-collapse: separate; border-spacing: 0; }
     .pill { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
     .pendiente { background: #FFF3CD; color: #856404; }
     .confirmado { background: #D1FAE5; color: #065F46; }
 
-    /* --------- 1. MÓVIL (PANTALLAS CHICAS < 768px) --------- */
+    /* MÓVIL */
     @media (max-width: 768px) {
-        .table-head { display: none; } /* Ocultar encabezados de tabla */
-        .desktop-pill { display: none; } /* Ocultar columna estado normal */
-        
+        .table-head, .desktop-pill { display: none; }
         .list-container { background: transparent; }
-        
-        /* La fila se comporta como TARJETA */
         .responsive-table, tbody, tr, td { display: block; width: 100%; box-sizing: border-box; }
         
         tr.data-row {
-            background: white;
-            margin-bottom: 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            overflow: hidden;
-            border: 1px solid #fff;
+            background: white; margin-bottom: 20px; border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #fff;
         }
 
-        /* Cabecera de la tarjeta (Fecha y Estado) */
-        .col-date {
-            background: #F8F9FA;
-            padding: 12px 20px;
-            border-bottom: 1px solid #eee;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .col-date { background: #F8F9FA; padding: 12px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .date-content { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #555; text-transform: uppercase; }
         .mobile-pill { display: inline-block; }
 
-        /* Cuerpo de la tarjeta */
         .col-patient { padding: 20px 20px 5px 20px; }
         .patient-wrap { display: flex; align-items: center; gap: 15px; }
         .avatar { width: 50px; height: 50px; border-radius: 50%; background: #E0C3FC; color: #4A148C; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; font-weight: 700; }
@@ -288,55 +323,32 @@ import Layout from '../../layouts/Layout.astro';
         .owner-text { display: flex; gap: 5px; align-items: baseline; }
         .mobile-label { font-size: 0.85rem; color: #888; }
         .o-name { font-weight: 600; font-size: 1rem; }
-        
-        .wa-btn {
-            background: var(--green); color: white; padding: 12px;
-            border-radius: 10px; text-decoration: none; font-weight: 700; text-align: center;
-            display: block; width: 100%; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2);
-        }
+        .wa-btn { background: var(--green); color: white; padding: 12px; border-radius: 10px; text-decoration: none; font-weight: 700; text-align: center; display: block; width: 100%; }
 
         .col-actions { padding: 0 20px 20px 20px; border-top: 1px solid #fafafa; padding-top: 15px; }
-        .btn-delete { 
-            width: 100%; background: white; border: 2px solid #ffecec; color: #ef4444; 
-            padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;
-            display: flex; justify-content: center; gap: 8px;
-        }
+        .btn-delete { width: 100%; background: white; border: 2px solid #ffecec; color: #ef4444; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; gap: 8px; }
     }
 
-    /* --------- 2. ESCRITORIO (PANTALLAS GRANDES > 769px) --------- */
+    /* PC */
     @media (min-width: 769px) {
         .list-container { background: white; border-radius: 16px; padding: 5px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
-        
         .table-head { display: table-header-group; }
-        .mobile-pill { display: none; } /* Ocultar pill del header móvil */
-        .mobile-label { display: none; }
-        .mobile-text { display: none; }
-
-        /* Restaurar comportamiento de TABLA */
+        .mobile-pill, .mobile-label, .mobile-text { display: none; }
         .responsive-table { display: table; width: 100%; }
         tbody { display: table-row-group; }
         tr.data-row { display: table-row; background: transparent; box-shadow: none; border-radius: 0; }
         tr.data-row:hover { background-color: #f9fafb; }
-        
         td { display: table-cell; padding: 15px 20px; vertical-align: middle; border-bottom: 1px solid #f0f0f0; }
-        tr:last-child td { border-bottom: none; }
-        th { text-align: left; padding: 15px 20px; background: #fafafa; color: #888; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #eee; }
+        th { text-align: left; padding: 15px 20px; background: #fafafa; color: #888; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
 
-        /* Ajustes visuales para PC */
-        .col-date { background: transparent; border: none; }
         .date-content { flex-direction: column; align-items: flex-start; gap: 0; text-transform: none; }
         .d-day { font-size: 0.95rem; font-weight: 700; color: #333; }
         .d-time { font-size: 0.8rem; color: #888; font-weight: 400; }
-
         .patient-wrap { display: flex; align-items: center; gap: 12px; }
         .avatar { width: 40px; height: 40px; font-size: 0.9rem; }
-        .p-name { font-size: 0.95rem; }
-        
         .owner-wrap { flex-direction: row; align-items: center; gap: 10px; }
         .wa-btn { background: #D1FAE5; color: #065F46; padding: 4px 12px; border-radius: 20px; text-decoration: none; font-size: 0.75rem; font-weight: 700; width: auto; }
-        
         .btn-delete { background: white; border: 1px solid #eee; width: 35px; height: 35px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .btn-delete:hover { background: #fee2e2; border-color: #fca5a5; }
         .text-right { text-align: right; }
     }
 
