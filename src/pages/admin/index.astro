@@ -2,169 +2,90 @@
 import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout title="Admin Seguro | Veterinaria Camila">
-    <div class="app-wrapper">
+<Layout title="Panel Admin | Veterinaria Camila">
+    <div id="app-content" style="display: none;">
         
-        <div id="login-screen" class="login-overlay">
-            <div class="login-card">
-                <div class="login-icon">🔐</div>
-                <h2>Acceso Seguro</h2>
-                <p>Solo personal autorizado</p>
-                
-                <form id="login-form">
-                    <input type="email" id="email" placeholder="admin@veterinaria.com" required />
-                    <input type="password" id="password" placeholder="Contraseña..." required />
-                    <button type="submit" id="btn-login">Iniciar Sesión</button>
-                </form>
+        <nav class="navbar">
+            <div class="brand"><span>🐾</span> Vet. <strong>Camila</strong></div>
+            <button id="btn-logout" class="btn-logout">Salir</button>
+        </nav>
 
-                <p id="login-error" class="error-msg">Credenciales incorrectas</p>
+        <main class="container">
+            <div class="header-row">
+                <div class="titles">
+                    <h1>Turnos</h1>
+                    <p id="last-update">Actualizado: ...</p>
+                </div>
+                <button id="btn-refresh" class="btn-refresh">🔄</button>
             </div>
-        </div>
 
-        <div id="admin-screen" style="display: none;">
-            
-            <nav class="navbar">
-                <div class="brand"><span>🐾</span> Vet. <strong>Camila</strong></div>
-                <button id="btn-logout" class="btn-logout">Cerrar Sesión</button>
-            </nav>
-
-            <main class="container">
-                <div class="header-row">
-                    <div class="titles">
-                        <h1>Panel de Control</h1>
-                        <p id="user-display">Usuario: ...</p>
-                    </div>
-                    <button id="btn-refresh" class="btn-refresh">🔄</button>
+            <div class="stats-container">
+                <div class="stat-card">
+                    <span class="label">Total</span>
+                    <strong id="stat-total">0</strong>
                 </div>
-
-                <div class="stats-container">
-                    <div class="stat-card">
-                        <span class="label">Total</span>
-                        <strong id="stat-total">-</strong>
-                    </div>
-                    <div class="stat-card highlight">
-                        <span class="label">Pendientes</span>
-                        <strong id="stat-pending">-</strong>
-                    </div>
+                <div class="stat-card highlight">
+                    <span class="label">Pendientes</span>
+                    <strong id="stat-pending">0</strong>
                 </div>
+            </div>
 
-                <div class="list-container">
-                    <table class="responsive-table">
-                        <thead class="table-head">
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Paciente</th>
-                                <th>Contacto</th>
-                                <th>Estado</th>
-                                <th class="text-right">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-turnos">
-                            </tbody>
-                    </table>
-                    
-                    <div id="empty-state" class="empty-state" style="display: none;">
-                        <div class="empty-icon">🔒</div>
-                        <h3>Sin acceso o sin datos</h3>
-                        <p>Inicia sesión para ver los turnos.</p>
-                    </div>
+            <div class="list-container">
+                <table class="responsive-table">
+                    <thead class="table-head">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Paciente</th>
+                            <th>Dueño & Contacto</th>
+                            <th>Estado (Tocar para cambiar)</th>
+                            <th class="text-right">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-turnos"></tbody>
+                </table>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <div class="empty-icon">🍃</div>
+                    <h3>Todo al día</h3>
+                    <p>No hay turnos registrados.</p>
                 </div>
-            </main>
-        </div>
+            </div>
+        </main>
     </div>
 </Layout>
 
 <script>
     import { supabase } from '../../lib/supabase';
 
-    // 1. REFERENCIAS AL DOM (Agregamos '!' y 'as ...' para calmar a TypeScript)
-    const loginScreen = document.getElementById('login-screen')!;
-    const adminScreen = document.getElementById('admin-screen')!;
-    const loginForm = document.getElementById('login-form') as HTMLFormElement; // 'as' define el tipo
-    const errorMsg = document.getElementById('login-error')!;
-    const btnLogout = document.getElementById('btn-logout')!;
-    const btnRefresh = document.getElementById('btn-refresh'); // Este puede ser null si no cargó aún
-    
-    // --- CHEQUEO DE SESIÓN ---
+    // --- 1. SEGURIDAD: VERIFICAR SESIÓN ---
     checkSession();
-
     async function checkSession() {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            showDashboard(session.user.email);
+        if (!session) {
+            window.location.href = '/login';
         } else {
-            // Como usamos '!', ya no marca error aquí
-            loginScreen.style.display = 'flex';
+            document.getElementById('app-content')!.style.display = 'block';
+            loadData();
         }
     }
 
-    // --- LOGICA DE LOGIN ---
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Casting seguro para inputs
-            const emailInput = document.getElementById('email') as HTMLInputElement;
-            const passInput = document.getElementById('password') as HTMLInputElement;
-            const btnLogin = document.getElementById('btn-login') as HTMLButtonElement;
-
-            const email = emailInput.value;
-            const password = passInput.value;
-
-            btnLogin.innerText = "Verificando...";
-            errorMsg.style.display = 'none';
-
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password
-            });
-
-            if (error) {
-                btnLogin.innerText = "Iniciar Sesión";
-                errorMsg.innerText = "Error: " + error.message;
-                errorMsg.style.display = 'block';
-            } else {
-                showDashboard(data.user.email);
-            }
-        });
-    }
-
-    // --- LOGICA DE LOGOUT ---
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async () => {
+    // --- 2. LOGOUT ---
+    document.getElementById('btn-logout')?.addEventListener('click', async () => {
+        if(confirm('¿Cerrar sesión?')) {
             await supabase.auth.signOut();
-            window.location.reload();
-        });
-    }
+            window.location.href = '/login';
+        }
+    });
 
-    // --- MOSTRAR PANEL ---
-    function showDashboard(email: string | undefined) {
-        if(loginScreen) loginScreen.style.display = 'none';
-        if(adminScreen) adminScreen.style.display = 'block';
-        
-        const userDisplay = document.getElementById('user-display');
-        if(userDisplay && email) userDisplay.innerText = `Admin: ${email}`;
-        
-        loadData();
-    }
-
-    // --- CARGAR DATOS ---
-    if (btnRefresh) {
-        btnRefresh.addEventListener('click', () => {
-            btnRefresh.classList.add('spin');
-            loadData().then(() => setTimeout(() => btnRefresh.classList.remove('spin'), 500));
-        });
-    }
+    // --- 3. CARGA DE DATOS ---
+    const btnRefresh = document.getElementById('btn-refresh');
+    btnRefresh?.addEventListener('click', () => {
+        btnRefresh.classList.add('spin');
+        loadData().then(() => setTimeout(() => btnRefresh.classList.remove('spin'), 500));
+    });
 
     async function loadData() {
-        const tbody = document.getElementById('tbody-turnos');
-        const emptyState = document.getElementById('empty-state');
-        const lastUpdate = document.getElementById('last-update');
-        const statTotal = document.getElementById('stat-total');
-        const statPending = document.getElementById('stat-pending');
-
-        // Si no encuentra la tabla, cortamos para evitar errores
-        if (!tbody || !emptyState) return;
+        const tbody = document.getElementById('tbody-turnos')!;
+        const emptyState = document.getElementById('empty-state')!;
         
         tbody.innerHTML = ''; 
 
@@ -173,22 +94,18 @@ import Layout from '../../layouts/Layout.astro';
             .select('*')
             .order('id', { ascending: false });
 
-        if (error) {
+        if (error) { 
             console.error(error);
-            alert("Sesión expirada o error de red.");
-            return;
+            return; 
         }
 
-        // Actualizar hora y stats (con chequeo por si acaso)
+        // Stats
         const now = new Date();
-        const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-        if(lastUpdate) lastUpdate.innerText = `Actualizado: ${timeString}`;
-
+        document.getElementById('last-update')!.innerText = `Actualizado: ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
         const total = turnos?.length || 0;
         const pendientes = turnos?.filter(t => t.estado === 'Pendiente').length || 0;
-        
-        if(statTotal) statTotal.innerText = total.toString();
-        if(statPending) statPending.innerText = pendientes.toString();
+        document.getElementById('stat-total')!.innerText = total.toString();
+        document.getElementById('stat-pending')!.innerText = pendientes.toString();
 
         if (!turnos || turnos.length === 0) {
             tbody.style.display = 'none';
@@ -209,15 +126,19 @@ import Layout from '../../layouts/Layout.astro';
             const dateObj = new Date(t.fecha + 'T00:00:00');
             const day = dateObj.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
 
+            // Renderizado de Filas
             tr.innerHTML = `
                 <td class="col-date">
                     <div class="date-content">
                         <span class="d-day">${day}</span>
                         <span class="d-time">${t.hora}</span>
                     </div>
-                    <span class="pill mobile-pill ${t.estado.toLowerCase()}">${t.estado}</span>
+                    <button class="pill mobile-pill ${t.estado.toLowerCase()} btn-status" 
+                            data-id="${t.id}" data-current="${t.estado}">
+                        ${t.estado}
+                    </button>
                 </td>
-                
+
                 <td class="col-patient">
                     <div class="patient-wrap">
                         <div class="avatar">${initial}</div>
@@ -230,56 +151,68 @@ import Layout from '../../layouts/Layout.astro';
 
                 <td class="col-owner">
                     <div class="owner-wrap">
-                        <div class="owner-text">
-                            <span class="mobile-label">Dueño:</span>
-                            <span class="o-name">${t.nombre}</span>
-                        </div>
+                        <div class="owner-text"><span class="mobile-label">Dueño:</span><span class="o-name">${t.nombre}</span></div>
                         <a href="${waLink}" target="_blank" class="wa-btn">WhatsApp</a>
                     </div>
                 </td>
 
                 <td class="col-status desktop-pill">
-                    <span class="pill ${t.estado.toLowerCase()}">${t.estado}</span>
+                    <button class="pill ${t.estado.toLowerCase()} btn-status" 
+                            data-id="${t.id}" data-current="${t.estado}">
+                        ${t.estado}
+                    </button>
                 </td>
 
                 <td class="col-actions">
-                    <button class="btn-delete delete" data-id="${t.id}">
-                        🗑️ <span class="mobile-text">Eliminar</span>
-                    </button>
+                    <button class="btn-delete delete" data-id="${t.id}">🗑️ <span class="mobile-text">Eliminar</span></button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
 
+        attachEvents();
+    }
+
+    function attachEvents() {
+        // Evento Eliminar
         document.querySelectorAll('.delete').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                if(confirm('¿Borrar turno?')) {
+                if(confirm('¿Borrar turno definitivamente?')) {
                     const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
                     await supabase.from('turnos').delete().eq('id', id);
                     loadData();
                 }
             });
         });
+
+        // Evento Cambiar Estado (La magia)
+        document.querySelectorAll('.btn-status').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const target = e.currentTarget as HTMLElement;
+                const id = target.getAttribute('data-id');
+                const current = target.getAttribute('data-current');
+                
+                // LÓGICA: Pendiente <-> Finalizado
+                const newStatus = current === 'Pendiente' ? 'Finalizado' : 'Pendiente';
+                
+                // Feedback visual inmediato
+                target.innerText = '...';
+                target.style.opacity = '0.7';
+
+                await supabase.from('turnos').update({ estado: newStatus }).eq('id', id);
+                loadData();
+            });
+        });
     }
 </script>
 
 <style is:global>
-    /* === ESTILOS RESPONSIVOS (Manteniendo el diseño bonito anterior) === */
     :root { --primary: #7C2D96; --bg: #F3F4F6; --green: #25D366; }
     body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; color: #333; padding-bottom: 50px; }
     
-    /* Login Ajustado */
-    .login-overlay { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 100; }
-    .login-card { background: white; padding: 40px; border-radius: 15px; text-align: center; width: 90%; max-width: 350px; }
-    .login-card input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-    .login-card button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    .error-msg { color: #ef4444; margin-top: 10px; font-size: 0.9rem; display: none; }
-
-    /* Navbar */
-    .navbar { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 50; }
-    .brand { font-weight: 700; font-size: 1.1rem; }
+    .navbar { background: white; padding: 10px 20px; display: flex; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .brand strong { color: var(--primary); }
-    .btn-logout { border: 1px solid #ddd; background: white; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .btn-logout { background: white; border: 1px solid #ddd; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
 
     .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -291,23 +224,44 @@ import Layout from '../../layouts/Layout.astro';
     .stat-card.highlight { border-bottom: 4px solid var(--primary); }
     .stat-card strong { font-size: 1.5rem; display: block; }
 
+    /* === ESTILOS DEL BOTÓN DE ESTADO (Bonito) === */
+    .pill { 
+        padding: 8px 16px; 
+        border-radius: 30px; 
+        font-size: 0.75rem; 
+        font-weight: 800; 
+        text-transform: uppercase; 
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        letter-spacing: 0.5px;
+    }
+    
+    .pill:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    .pill:active { transform: scale(0.95); }
+
+    /* Colores de Estado */
+    .pendiente { 
+        background-color: #FFF7ED; 
+        color: #C2410C; 
+        border: 1px solid #FFEDD5;
+    }
+    .finalizado { 
+        background-color: #DCFCE7; 
+        color: #15803D; 
+        border: 1px solid #BBF7D0;
+    }
+
     /* === RESPONSIVE TABLE === */
     .responsive-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-    .pill { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
-    .pendiente { background: #FFF3CD; color: #856404; }
-    .confirmado { background: #D1FAE5; color: #065F46; }
-
-    /* MÓVIL */
+    
     @media (max-width: 768px) {
         .table-head, .desktop-pill { display: none; }
-        .list-container { background: transparent; }
         .responsive-table, tbody, tr, td { display: block; width: 100%; box-sizing: border-box; }
         
-        tr.data-row {
-            background: white; margin-bottom: 20px; border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #fff;
-        }
-
+        tr.data-row { background: white; margin-bottom: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #fff; }
+        
         .col-date { background: #F8F9FA; padding: 12px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .date-content { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #555; text-transform: uppercase; }
         .mobile-pill { display: inline-block; }
@@ -329,7 +283,6 @@ import Layout from '../../layouts/Layout.astro';
         .btn-delete { width: 100%; background: white; border: 2px solid #ffecec; color: #ef4444; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; gap: 8px; }
     }
 
-    /* PC */
     @media (min-width: 769px) {
         .list-container { background: white; border-radius: 16px; padding: 5px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
         .table-head { display: table-header-group; }
@@ -340,7 +293,7 @@ import Layout from '../../layouts/Layout.astro';
         tr.data-row:hover { background-color: #f9fafb; }
         td { display: table-cell; padding: 15px 20px; vertical-align: middle; border-bottom: 1px solid #f0f0f0; }
         th { text-align: left; padding: 15px 20px; background: #fafafa; color: #888; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
-
+        
         .date-content { flex-direction: column; align-items: flex-start; gap: 0; text-transform: none; }
         .d-day { font-size: 0.95rem; font-weight: 700; color: #333; }
         .d-time { font-size: 0.8rem; color: #888; font-weight: 400; }
